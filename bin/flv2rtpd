@@ -1,0 +1,36 @@
+#!/bin/sh
+
+. daemonize
+
+usage() {
+    echo "Usage: $(basename $0) [OPTIONS] <FLV_LOCATION> <FLV_HOST> <FLV_PORT> <COMMAND>"
+    echo ""
+    exit 0
+}
+
+[ $# -ne 4 ] && usage
+
+flv_location=$1
+flv_host=$2
+flv_port=$3
+cmd=$4
+
+stream_root=$(make_hash $flv_location $flv_host $flv_port)
+stream_leaf=$stream_root
+
+case $cmd in
+    start)
+        daemon_start $stream_root $stream_leaf "flv2rtp $flv_location $flv_host $flv_port"
+        ;;
+    stop)
+        daemon_stop $stream_root $stream_leaf
+        ;;
+    status)
+        status $stream_root $stream_leaf
+        ;;
+    info)
+        echo "$(path_to_stream $stream_root)"
+        ;;
+    *)  usage
+        ;;
+esac

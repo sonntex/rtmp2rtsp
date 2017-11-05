@@ -1,0 +1,27 @@
+#!/bin/sh
+
+usage() {
+    echo "Usage: $(basename $0) <FLV_LOCATION> <FLV_HOST> <FLV_PORT>"
+    echo ""
+    exit 0
+}
+
+[ $# -ne 3 ] && usage
+
+flv_location=$1
+flv_host=$2
+flv_port=$3
+
+exec gst-launch-1.0 -vef \
+    rtmpsrc location="$flv_location" timeout=10 \
+  ! flvdemux name=demux \
+    demux.video \
+  ! queue \
+  ! h264parse \
+  ! rtph264pay pt=96 config-interval=1 \
+  ! udpsink host=$flv_host port=$(( $flv_port + 0 )) auto-multicast=true \
+    demux.audio \
+  ! queue \
+  ! aacparse \
+  ! rtpmp4apay pt=97 \
+  ! udpsink host=$flv_host port=$(( $flv_port + 1 )) auto-multicast=true

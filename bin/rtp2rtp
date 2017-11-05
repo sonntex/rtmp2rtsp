@@ -1,0 +1,19 @@
+#!/bin/sh
+
+usage() {
+    echo "Usage: $(basename $0) <FLV_LOCATION> <FLV_HOST> <FLV_PORT> <RTP_HOST> <RTP_PORT>"
+    echo ""
+    exit 0
+}
+
+[ $# -ne 5 ] && usage
+
+flv_location=$1
+flv_host=$2
+flv_port=$3
+rtp_host=$4
+rtp_port=$5
+
+exec gst-launch-1.0 -vef \
+    udpsrc uri="udp://$flv_host:$(( $flv_port + 0 ))" ! udpsink host=$rtp_host port=$(( $rtp_port + 0 )) \
+    udpsrc uri="udp://$flv_host:$(( $flv_port + 1 ))" ! udpsink host=$rtp_host port=$(( $rtp_port + 1 ))

@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# export GST_DEBUG=4
+
+flv2rtpd "rtmp://184.72.239.149/vod/mp4:bigbuckbunny_450.mp4" 127.0.0.1 5000 start
+
+gst-launch-1.0 -vef \
+    udpsrc uri="udp://127.0.0.1:5000" \
+  !     "application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264, packetization-mode=(string)1, profile-level-id=(string)4d401f, sprop-parameter-sets=(string)\"Z01AH5ZTAIgJvLo\=\,aOkjiAA\=\", payload=(int)96" \
+  ! rtph264depay \
+  ! h264parse \
+  ! avdec_h264 \
+  ! autovideosink
+
+flv2rtpd "rtmp://184.72.239.149/vod/mp4:bigbuckbunny_450.mp4" 127.0.0.1 5000 start

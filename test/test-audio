@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# export GST_DEBUG=4
+
+flv2rtpd "rtmp://184.72.239.149/vod/mp4:bigbuckbunny_450.mp4" 127.0.0.1 5000 start
+
+gst-launch-1.0 -vef \
+    udpsrc uri="udp://127.0.0.1:5001" \
+  !     "application/x-rtp, media=(string)audio, clock-rate=(int)48000, encoding-name=(string)MP4A-LATM, cpresent=(string)0, config=(string)40002320118800004000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, payload=(int)97" \
+  ! rtpmp4adepay \
+  ! aacparse \
+  ! faad \
+  ! autoaudiosink
+
+flv2rtpd "rtmp://184.72.239.149/vod/mp4:bigbuckbunny_450.mp4" 127.0.0.1 5000 stop

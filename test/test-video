@@ -12,4 +12,4 @@ gst-launch-1.0 -vef \
   ! avdec_h264 \
   ! autovideosink
 
-flv2rtpd "rtmp://184.72.239.149/vod/mp4:bigbuckbunny_450.mp4" 127.0.0.1 5000 start
+flv2rtpd "rtmp://184.72.239.149/vod/mp4:bigbuckbunny_450.mp4" 127.0.0.1 5000 stop

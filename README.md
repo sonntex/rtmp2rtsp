@@ -41,5 +41,4 @@ How to daemonize stream?
 
 How to play stream?
 
-    test/test-video
-    test/test-audio
+    test/test-player

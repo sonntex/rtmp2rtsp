@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.11)
 
-install(PROGRAMS bin/flv2rtspd DESTINATION bin)
+install(PROGRAMS bin/rtmp2rtspd DESTINATION bin)
 install(FILES bin/daemonize DESTINATION bin)
 
 add_subdirectory(src)

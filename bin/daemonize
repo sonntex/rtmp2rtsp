@@ -6,7 +6,7 @@ make_hash() {
 
 path_to_stream() {
     local root=$1
-    echo /tmp/flv2rtspd/$root
+    echo /tmp/rtmp2rtspd/$root
 }
 
 path_to_pid() {

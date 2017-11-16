@@ -26,11 +26,11 @@ How to play?
 
 How to stream?
 
-    flv2rtsp "rtmp://127.0.0.1:1935/vod/stream" 127.0.0.1 8554
+    rtmp2rtsp "rtmp://127.0.0.1:1935/vod/stream" 127.0.0.1 8554
 
 How to daemonize stream?
 
-    flv2rtspd "rtmp://127.0.0.1:1935/vod/stream" 127.0.0.1 8554 start
-    flv2rtspd "rtmp://127.0.0.1:1935/vod/stream" 127.0.0.1 8554 status
-    flv2rtspd "rtmp://127.0.0.1:1935/vod/stream" 127.0.0.1 8554 info
-    flv2rtspd "rtmp://127.0.0.1:1935/vod/stream" 127.0.0.1 8554 stop
+    rtmp2rtspd "rtmp://127.0.0.1:1935/vod/stream" 127.0.0.1 8554 start
+    rtmp2rtspd "rtmp://127.0.0.1:1935/vod/stream" 127.0.0.1 8554 status
+    rtmp2rtspd "rtmp://127.0.0.1:1935/vod/stream" 127.0.0.1 8554 info
+    rtmp2rtspd "rtmp://127.0.0.1:1935/vod/stream" 127.0.0.1 8554 stop

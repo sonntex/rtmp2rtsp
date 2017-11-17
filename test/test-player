@@ -2,8 +2,6 @@
 
 # export GST_DEBUG=4
 
-rtmp2rtspd "rtmp://127.0.0.1:1935/vod/stream" 127.0.0.1 8554 start
-
 gst-launch-1.0 -vef \
     rtspsrc location="rtsp://127.0.0.1:8554/stream" name=src \
     src. \
@@ -18,5 +16,3 @@ gst-launch-1.0 -vef \
   ! aacparse \
   ! faad \
   ! autoaudiosink
-
-rtmp2rtspd "rtmp://127.0.0.1:1935/vod/stream" 127.0.0.1 8554 stop

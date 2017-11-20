@@ -10,6 +10,8 @@ callback_options_request (GstRTSPClient * client, GstRTSPContext * ctx, GstRTSPS
   GstRTSPMountPoints *mounts;
   GstRTSPMediaFactory *factory;
 
+  g_print ("rtmp2rtsp: options request\n");
+
   mounts = gst_rtsp_server_get_mount_points (server);
 
   factory = gst_rtsp_mount_points_match (mounts, ctx->uri->abspath, NULL);

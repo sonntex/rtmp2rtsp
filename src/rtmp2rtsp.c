@@ -30,7 +30,7 @@ callback_options_request (GstRTSPClient * client, GstRTSPContext * ctx, GstRTSPS
     factory = gst_rtsp_media_factory_new ();
 
     launch = g_strdup_printf (
-        "( rtmpsrc location=rtmp://%s:%s/rtmp2rtsp%s timeout=%u ! flvdemux name=demux "
+        "( rtmpsrc location=rtmp://%s:%s%s timeout=%u ! flvdemux name=demux "
         "  demux.video ! queue ! h264parse ! rtph264pay name=pay0 pt=96 "
         "  demux.audio ! queue !  aacparse ! rtpmp4apay name=pay1 pt=97 )",
         rtmp_host, rtmp_port, ctx->uri->abspath, timeout);

@@ -1,11 +1,18 @@
+#include <stdlib.h>
+
 #include <gst/gst.h>
 
 #include <gst/rtsp-server/rtsp-server.h>
 
+gchar *rtmp_host;
+gchar *rtmp_port;
+gchar *rtsp_host;
+gchar *rtsp_port;
+
 const guint timeout = 10;
 
 static void
-callback_options_request (GstRTSPClient * client, GstRTSPContext * ctx, GstRTSPServer * server, gpointer user_data)
+callback_options_request (GstRTSPClient * client, GstRTSPContext * ctx, GstRTSPServer * server)
 {
   GstRTSPMountPoints *mounts;
   GstRTSPMediaFactory *factory;
@@ -23,10 +30,10 @@ callback_options_request (GstRTSPClient * client, GstRTSPContext * ctx, GstRTSPS
     factory = gst_rtsp_media_factory_new ();
 
     launch = g_strdup_printf (
-        "( rtmpsrc location=rtmp://localhost:1935/rtmp2rtsp%s timeout=%u ! flvdemux name=demux "
+        "( rtmpsrc location=rtmp://%s:%s/rtmp2rtsp%s timeout=%u ! flvdemux name=demux "
         "  demux.video ! queue ! h264parse ! rtph264pay name=pay0 pt=96 "
         "  demux.audio ! queue !  aacparse ! rtpmp4apay name=pay1 pt=97 )",
-        ctx->uri->abspath, timeout);
+        rtmp_host, rtmp_port, ctx->uri->abspath, timeout);
 
     gst_rtsp_media_factory_set_launch (factory, launch);
     gst_rtsp_media_factory_set_shared (factory, TRUE);
@@ -46,8 +53,10 @@ callback_options_request (GstRTSPClient * client, GstRTSPContext * ctx, GstRTSPS
 }
 
 static void
-callback_client_connected (GstRTSPServer * server, GstRTSPClient * client, gpointer user_data)
+callback_client_connected (GstRTSPServer * server, GstRTSPClient * client)
 {
+  g_print ("rtmp2rtsp: client connected\n");
+
   g_signal_connect_object (client, "options-request", (GCallback) callback_options_request, server, G_CONNECT_AFTER);
 }
 
@@ -68,16 +77,19 @@ main (int argc, char *argv[])
 {
   GMainLoop *loop;
   GstRTSPServer *server;
-  gchar *host;
-  gchar *port;
 
-  if (argc != 3) {
+  rtmp_host = getenv("RTMP_HOST");
+  rtmp_port = getenv("RTMP_PORT");
+  rtsp_host = getenv("RTSP_HOST");
+  rtsp_port = getenv("RTSP_PORT");
+
+  if (!rtmp_host ||
+      !rtmp_port ||
+      !rtsp_host ||
+      !rtsp_port) {
     g_print ("rtmp2rtsp: failed to parse arguments\n");
     return -1;
   }
-
-  host = argv[1];
-  port = argv[2];
 
   gst_init (&argc, &argv);
 
@@ -85,8 +97,8 @@ main (int argc, char *argv[])
 
   server = gst_rtsp_server_new ();
 
-  gst_rtsp_server_set_address (server, host);
-  gst_rtsp_server_set_service (server, port);
+  gst_rtsp_server_set_address (server, rtsp_host);
+  gst_rtsp_server_set_service (server, rtsp_port);
 
   if (gst_rtsp_server_attach (server, NULL) == 0) {
     g_print ("rtmp2rtsp: failed to attach\n");
@@ -97,7 +109,7 @@ main (int argc, char *argv[])
 
   g_timeout_add_seconds (timeout, (GSourceFunc) callback_timeout, server);
 
-  g_print ("rtmp2rtsp: run at %s:%s\n", host, port);
+  g_print ("rtmp2rtsp: run from %s:%s at %s:%s\n", rtmp_host, rtmp_port, rtsp_host, rtsp_port);
 
   g_main_loop_run (loop);
 

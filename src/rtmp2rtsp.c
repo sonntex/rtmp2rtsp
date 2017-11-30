@@ -1,4 +1,7 @@
 #include <stdlib.h>
+#include <execinfo.h>
+#include <signal.h>
+#include <sys/resource.h>
 
 #include <gst/gst.h>
 
@@ -147,6 +150,34 @@ callback_timeout (GstRTSPServer *server)
   return TRUE;
 }
 
+static void
+callback_signal(int signal_number)
+{
+  void *array[1024];
+  int size;
+  signal (signal_number, SIG_DFL);
+  size = backtrace (array, sizeof (array));
+  backtrace_symbols_fd (array, size, STDERR_FILENO);
+  kill (getpid (), signal_number);
+}
+
+static void
+setup_backtrace()
+{
+  signal (SIGSEGV, callback_signal);
+  signal (SIGABRT, callback_signal);
+}
+
+static void
+setup_core()
+{
+  struct rlimit limit;
+  getrlimit (RLIMIT_CORE, &limit);
+  limit.rlim_cur = RLIM_INFINITY;
+  limit.rlim_max = RLIM_INFINITY;
+  setrlimit (RLIMIT_CORE, &limit);
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -165,6 +196,9 @@ main (int argc, char *argv[])
     g_print ("rtmp2rtsp: failed to parse arguments\n");
     return -1;
   }
+
+  setup_backtrace();
+  setup_core();
 
   gst_init (&argc, &argv);
 

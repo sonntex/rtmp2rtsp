@@ -92,7 +92,7 @@ main (int argc, char *argv[])
 
   loop = g_main_loop_new (NULL, FALSE);
 
-  media_table = gst_rtsp_media_table_new ();
+  media_table = rtsp_media_table_new ();
 
   rtsp_init (media_table, rtmp_host, rtmp_port, 10, rtsp_host, rtsp_port, 10);
   http_init (media_table, http_host, http_port);
@@ -103,7 +103,7 @@ main (int argc, char *argv[])
 
   g_print ("rtmp2rtsp: stop\n");
 
-  gst_rtsp_media_table_free (media_table);
+  rtsp_media_table_free (media_table);
 
   gst_deinit ();
 

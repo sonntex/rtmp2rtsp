@@ -94,7 +94,7 @@ main (int argc, char *argv[])
 
   media_table = rtsp_media_table_new ();
 
-  rtsp_init (media_table, rtmp_host, rtmp_port, 10, rtsp_host, rtsp_port, 10);
+  rtsp_init (media_table, rtmp_host, rtmp_port, rtmp_timeout, rtsp_host, rtsp_port, rtsp_timeout);
   http_init (media_table, http_host, http_port);
 
   g_print ("rtmp2rtsp: start\n");

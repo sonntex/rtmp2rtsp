@@ -7,6 +7,7 @@
 
 #include "rtsp.h"
 #include "http.h"
+#include "prometheus.h"
 
 static gchar *rtmp_host = "127.0.0.1";
 static gchar *rtmp_port = "1935";
@@ -16,6 +17,8 @@ static gchar *rtsp_port = "8554";
 static gint rtsp_timeout = 10;
 static gchar *http_host = "127.0.0.1";
 static gchar *http_port = "8080";
+static gchar *prometheus_host = "127.0.0.1";
+static gchar *prometheus_port = "8081";
 
 static GOptionEntry options[] =
 {
@@ -27,6 +30,8 @@ static GOptionEntry options[] =
   { "rtsp-timeout", 0, 0, G_OPTION_ARG_INT, &rtsp_timeout, "rtsp timeout", NULL },
   { "http-host", 0, 0, G_OPTION_ARG_STRING, &http_host, "http host", NULL },
   { "http-port", 0, 0, G_OPTION_ARG_STRING, &http_port, "http port", NULL },
+  { "prometheus-host", 0, 0, G_OPTION_ARG_STRING, &prometheus_host, "prometheus host", NULL },
+  { "prometheus-port", 0, 0, G_OPTION_ARG_STRING, &prometheus_port, "prometheus port", NULL },
   { NULL }
 };
 
@@ -96,6 +101,7 @@ main (int argc, char *argv[])
 
   rtsp_init (media_table, rtmp_host, rtmp_port, rtmp_timeout, rtsp_host, rtsp_port, rtsp_timeout);
   http_init (media_table, http_host, http_port);
+  prometheus_init (media_table, prometheus_host, prometheus_port);
 
   g_print ("rtmp2rtsp: start\n");
 

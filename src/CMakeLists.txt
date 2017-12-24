@@ -21,6 +21,7 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG")
 add_executable(${PROJECT}
     rtsp.c
     http.c
+    prometheus.c
     main.c)
 
 target_link_libraries(${PROJECT}

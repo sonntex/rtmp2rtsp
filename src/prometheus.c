@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "prometheus.h"
 #include "rtsp.h"
-#include "http.h"
 
 #include <libsoup/soup.h>
 
@@ -36,18 +36,18 @@ soup_opaque_free (SoupOpaque *opaque)
   g_free (opaque);
 }
 
-static void http_handle (
+static void prometheus_handle (
     SoupServer *server, SoupMessage *msg, const gchar *path, GHashTable *query,
     SoupClientContext *context, gpointer data);
-static void http_handle_streams (
+static void prometheus_handle_metrics (
     SoupServer *server, SoupMessage *msg, const gchar *path, GHashTable *query,
     SoupClientContext *context, gpointer data);
-static void http_handle_streams_get (
+static void prometheus_handle_metrics_get (
     SoupServer *server, SoupMessage *msg, const gchar *path, GHashTable *query,
     SoupClientContext *context, gpointer data);
 
 void
-http_init (GstRTSPMediaTable *media_table, const gchar *host, const gchar *port)
+prometheus_init (GstRTSPMediaTable *media_table, const gchar *host, const gchar *port)
 {
   SoupOpaque *opaque;
   SoupServer *server;
@@ -61,50 +61,55 @@ http_init (GstRTSPMediaTable *media_table, const gchar *host, const gchar *port)
 
   soup_server_listen_all (server, atoi(port), 0, &error);
 
-  soup_server_add_handler (server, NULL, http_handle, NULL, NULL);
+  soup_server_add_handler (server, NULL, prometheus_handle, NULL, NULL);
 
-  g_print ("rtmp2rtsp: run http at %s:%s\n", host, port);
+  g_print ("rtmp2rtsp: run prometheus at %s:%s\n", host, port);
 }
 
 static void
-http_handle (
+prometheus_handle (
     SoupServer *server, SoupMessage *msg, const gchar *path, GHashTable *query,
     SoupClientContext *context, gpointer data)
 {
-  if (g_strcmp0 (path, "/api/v1/streams") == 0) {
-    http_handle_streams (server, msg, path, query, context, data);
+  if (g_strcmp0 (path, "/metrics") == 0) {
+    prometheus_handle_metrics (server, msg, path, query, context, data);
   } else {
     soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
   }
 }
 
 static void
-http_handle_streams (
+prometheus_handle_metrics (
     SoupServer *server, SoupMessage *msg, const gchar *path, GHashTable *query,
     SoupClientContext *context, gpointer data)
 {
   if (g_strcmp0 (msg->method, "GET") == 0) {
-    http_handle_streams_get (server, msg, path, query, context, data);
+    prometheus_handle_metrics_get (server, msg, path, query, context, data);
   } else {
     soup_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED);
   }
 }
 
 static void
-http_handle_streams_get (
+prometheus_handle_metrics_get (
     SoupServer *server, SoupMessage *msg, const gchar *path, GHashTable *query,
     SoupClientContext *context, gpointer data)
 {
   SoupOpaque *opaque = g_object_get_data (G_OBJECT (server), "opaque");
-  JsonBuilder *builder;
+  guint num_streams, num_clients;
+  guint64 num_streams_bytes, num_clients_bytes;
   gchar *body;
 
-  builder = json_builder_new ();
-  json_builder_stream_list (builder, opaque->media_table);
-  body = json_builder_to_body (builder);
-  g_object_unref (builder);
+  rtsp_stat (opaque->media_table, &num_streams, &num_streams_bytes, &num_clients, &num_clients_bytes);
 
-  soup_message_set_response (msg, "application/json", SOUP_MEMORY_TAKE, body, strlen(body));
+  body = g_strdup_printf (
+      "rtmp2rtsp_streams_total %u\n"
+      "rtmp2rtsp_streams_bytes %lu\n"
+      "rtmp2rtsp_clients_total %u\n"
+      "rtmp2rtsp_clients_bytes %lu\n",
+      num_streams, num_streams_bytes, num_clients, num_clients_bytes);
+
+  soup_message_set_response (msg, "text/plain", SOUP_MEMORY_TAKE, body, strlen(body));
 
   soup_message_set_status (msg, SOUP_STATUS_OK);
 }

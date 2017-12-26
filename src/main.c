@@ -91,7 +91,6 @@ main (int argc, char *argv[])
   }
 
   setup_signals ();
-  setup_core ();
 
   gst_init (NULL, NULL);
 

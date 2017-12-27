@@ -19,8 +19,8 @@ void rtsp_init (GstRTSPMediaTable *media_table,
     const gchar *rtsp_host, const gchar *rtsp_port, guint rtsp_timeout);
 
 void rtsp_stat (GstRTSPMediaTable *media_table,
-    guint *num_streams, guint64 *num_streams_bytes,
-    guint *num_clients, guint64 *num_clients_bytes);
+    guint *streams_num, guint *streams_bps,
+    guint *clients_num, guint *clients_bps);
 
 void json_builder_stream (JsonBuilder *builder, GstRTSPMedia *media);
 void json_builder_stream_value (JsonBuilder *builder, GstRTSPMedia *media);

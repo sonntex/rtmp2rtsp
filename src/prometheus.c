@@ -96,18 +96,17 @@ prometheus_handle_metrics_get (
     SoupClientContext *context, gpointer data)
 {
   SoupOpaque *opaque = g_object_get_data (G_OBJECT (server), "opaque");
-  guint num_streams, num_clients;
-  guint64 num_streams_bytes, num_clients_bytes;
+  guint streams_num, streams_bps, clients_num, clients_bps;
   gchar *body;
 
-  rtsp_stat (opaque->media_table, &num_streams, &num_streams_bytes, &num_clients, &num_clients_bytes);
+  rtsp_stat (opaque->media_table, &streams_num, &streams_bps, &clients_num, &clients_bps);
 
   body = g_strdup_printf (
       "rtmp2rtsp_streams_total %u\n"
-      "rtmp2rtsp_streams_bytes %lu\n"
+      "rtmp2rtsp_streams_bitrate %u\n"
       "rtmp2rtsp_clients_total %u\n"
-      "rtmp2rtsp_clients_bytes %lu\n",
-      num_streams, num_streams_bytes, num_clients, num_clients_bytes);
+      "rtmp2rtsp_clients_bitrate %u\n",
+      streams_num, streams_bps, clients_num, clients_bps);
 
   soup_message_set_response (msg, "text/plain", SOUP_MEMORY_TAKE, body, strlen(body));
 

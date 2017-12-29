@@ -11,10 +11,10 @@
 
 static gchar *rtmp_host = "127.0.0.1";
 static gchar *rtmp_port = "1935";
-static gint rtmp_timeout = 10;
+static gint rtmp_timeout = 30;
 static gchar *rtsp_host = "127.0.0.1";
 static gchar *rtsp_port = "8554";
-static gint rtsp_timeout = 10;
+static gint rtsp_timeout = 30;
 static gchar *http_host = "127.0.0.1";
 static gchar *http_port = "8080";
 static gchar *prometheus_host = "127.0.0.1";

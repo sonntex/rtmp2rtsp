@@ -8,6 +8,7 @@
 #include "rtsp.h"
 #include "http.h"
 #include "prometheus.h"
+#include "consul.h"
 
 static gchar *rtmp_host = "127.0.0.1";
 static gchar *rtmp_port = "1935";
@@ -19,6 +20,9 @@ static gchar *http_host = "127.0.0.1";
 static gchar *http_port = "8080";
 static gchar *prometheus_host = "127.0.0.1";
 static gchar *prometheus_port = "8081";
+static gchar *consul_host = "127.0.0.1";
+static gchar *consul_port = "8082";
+static gchar *consul_agent_port = "8500";
 
 static GOptionEntry options[] =
 {
@@ -32,6 +36,9 @@ static GOptionEntry options[] =
   { "http-port", 0, 0, G_OPTION_ARG_STRING, &http_port, "http port", NULL },
   { "prometheus-host", 0, 0, G_OPTION_ARG_STRING, &prometheus_host, "prometheus host", NULL },
   { "prometheus-port", 0, 0, G_OPTION_ARG_STRING, &prometheus_port, "prometheus port", NULL },
+  { "consul-host", 0, 0, G_OPTION_ARG_STRING, &consul_host, "consul host", NULL },
+  { "consul-port", 0, 0, G_OPTION_ARG_STRING, &consul_port, "consul port", NULL },
+  { "consul-agent-port", 0, 0, G_OPTION_ARG_STRING, &consul_agent_port, "consul agent port", NULL },
   { NULL }
 };
 
@@ -101,6 +108,7 @@ main (int argc, char *argv[])
   rtsp_init (media_table, rtmp_host, rtmp_port, rtmp_timeout, rtsp_host, rtsp_port, rtsp_timeout);
   http_init (media_table, http_host, http_port);
   prometheus_init (media_table, prometheus_host, prometheus_port);
+  consul_init (media_table, consul_host, consul_port);
 
   g_print ("rtmp2rtsp: start\n");
 

@@ -22,6 +22,7 @@ add_executable(${PROJECT}
     rtsp.c
     http.c
     prometheus.c
+    consul.c
     main.c)
 
 target_link_libraries(${PROJECT}

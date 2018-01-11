@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "consul.h"
 #include "rtsp.h"
-#include "http.h"
 
 #include <libsoup/soup.h>
 
@@ -36,18 +36,18 @@ soup_opaque_free (SoupOpaque *opaque)
   g_free (opaque);
 }
 
-static void http_handle (
+static void consul_handle (
     SoupServer *server, SoupMessage *msg, const gchar *path, GHashTable *query,
     SoupClientContext *context, gpointer data);
-static void http_handle_streams (
+static void consul_handle_health (
     SoupServer *server, SoupMessage *msg, const gchar *path, GHashTable *query,
     SoupClientContext *context, gpointer data);
-static void http_handle_streams_get (
+static void consul_handle_health_get (
     SoupServer *server, SoupMessage *msg, const gchar *path, GHashTable *query,
     SoupClientContext *context, gpointer data);
 
 void
-http_init (GstRTSPMediaTable *media_table, const gchar *host, const gchar *port)
+consul_init (GstRTSPMediaTable *media_table, const gchar *host, const gchar *port)
 {
   SoupOpaque *opaque;
   SoupServer *server;
@@ -61,50 +61,76 @@ http_init (GstRTSPMediaTable *media_table, const gchar *host, const gchar *port)
 
   soup_server_listen_all (server, atoi(port), 0, &error);
 
-  soup_server_add_handler (server, NULL, http_handle, NULL, NULL);
+  soup_server_add_handler (server, NULL, consul_handle, NULL, NULL);
 
-  g_print ("rtmp2rtsp: run http at %s:%s\n", host, port);
+  g_print ("rtmp2rtsp: run consul at %s:%s\n", host, port);
 }
 
 static void
-http_handle (
+consul_handle (
     SoupServer *server, SoupMessage *msg, const gchar *path, GHashTable *query,
     SoupClientContext *context, gpointer data)
 {
-  if (g_strcmp0 (path, "/api/v1/streams") == 0) {
-    http_handle_streams (server, msg, path, query, context, data);
+  if (g_strcmp0 (path, "/health") == 0) {
+    consul_handle_health (server, msg, path, query, context, data);
   } else {
     soup_message_set_status (msg, SOUP_STATUS_NOT_FOUND);
   }
 }
 
 static void
-http_handle_streams (
+consul_handle_health_get (
     SoupServer *server, SoupMessage *msg, const gchar *path, GHashTable *query,
     SoupClientContext *context, gpointer data)
 {
-  if (g_strcmp0 (msg->method, "GET") == 0) {
-    http_handle_streams_get (server, msg, path, query, context, data);
-  } else {
-    soup_message_set_status (msg, SOUP_STATUS_METHOD_NOT_ALLOWED);
-  }
+  soup_message_set_status (msg, SOUP_STATUS_OK);
 }
 
-static void
-http_handle_streams_get (
-    SoupServer *server, SoupMessage *msg, const gchar *path, GHashTable *query,
-    SoupClientContext *context, gpointer data)
+void
+consul_add (const gchar *local_port, const gchar *agent_port)
 {
-  SoupOpaque *opaque = g_object_get_data (G_OBJECT (server), "opaque");
+  SoupSession *session;
+  SoupMessage *msg;
   JsonBuilder *builder;
-  gchar *body;
+  gchar *body, *url;
 
-  builder = json_builder_new ();
-  json_builder_stream_list (builder, opaque->media_table);
+  json_builder_service (builder);
   body = json_builder_to_body (builder);
   g_object_unref (builder);
 
-  soup_message_set_response (msg, "application/json", SOUP_MEMORY_TAKE, body, strlen (body));
+  session = soup_session_new_with_options (SOUP_SESSION_ADD_FEATURE_BY_TYPE,
+      SOUP_TYPE_CONTENT_SNIFFER, NULL);
 
-  soup_message_set_status (msg, SOUP_STATUS_OK);
+  url = g_strdup_printf ("http://localhost:%s/v1/agent/service/register",
+      agent_port);
+
+  msg = soup_message_new ("GET", url);
+
+  soup_message_set_request (msg, "application/json", SOUP_MEMORY_TAKE, body, strlen (body));
+
+  soup_session_send_message (session, msg);
+
+  g_free (url);
+}
+
+void
+consul_del (const gchar *local_port, const gchar *agent_port)
+{
+}
+
+void
+json_builder_service (JsonBuilder *builder, const gchar *local_port, const gchar *agent_port)
+{
+  json_builder_begin_object (builder);
+  json_builder_service_value (builder, local_port, agent_port);
+  json_builder_end_object (builder);
+}
+
+void
+json_builder_service_value (JsonBuilder *builder, const gchar *local_port, const gchar *agent_port)
+{
+  json_builder_set_member_name (builder, "name");
+  json_builder_add_string_value (builder, "rtmp2rtsp");
+  json_builder_set_member_name (builder, "port");
+  json_builder_add_string_value (builder, local_port);
 }

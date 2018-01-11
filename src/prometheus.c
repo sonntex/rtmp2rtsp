@@ -108,7 +108,7 @@ prometheus_handle_metrics_get (
       "rtmp2rtsp_clients_bitrate %u\n",
       streams_num, streams_bps, clients_num, clients_bps);
 
-  soup_message_set_response (msg, "text/plain", SOUP_MEMORY_TAKE, body, strlen(body));
+  soup_message_set_response (msg, "text/plain", SOUP_MEMORY_TAKE, body, strlen (body));
 
   soup_message_set_status (msg, SOUP_STATUS_OK);
 }

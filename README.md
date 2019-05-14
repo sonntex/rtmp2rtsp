@@ -1,3 +1,13 @@
+Dependencies:
+
+* start-stop-daemon
+* gstreamer
+* gst-plugins-good
+* gst-plugins-bad
+* gst-plugins-ugly
+* nginx
+* nginx-rtmp-module
+
 Sources:
 
 * rtmp://184.72.239.149/vod/mp4:bigbuckbunny_450.mp4

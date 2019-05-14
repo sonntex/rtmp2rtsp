@@ -5,6 +5,12 @@
 flv2rtpd "rtmp://127.0.0.1:1935/vod/stream" 127.0.0.1 5000 start
 
 gst-launch-1.0 -vef \
+    udpsrc uri="udp://127.0.0.1:5000" \
+  !     "application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264, packetization-mode=(string)1, profile-level-id=(string)42c015, sprop-parameter-sets=(string)\"Z0LAFdkBQfsBagwCC0oAAAMAAgAAAwB5HixckA\=\=\,aMuMsg\=\=\", payload=(int)96" \
+  ! rtph264depay \
+  ! h264parse \
+  ! avdec_h264 \
+  ! autovideosink \
     udpsrc uri="udp://127.0.0.1:5001" \
   !     "application/x-rtp, media=(string)audio, clock-rate=(int)44100, encoding-name=(string)MP4A-LATM, cpresent=(string)0, config=(string)40002410, payload=(int)97" \
   ! rtpmp4adepay \

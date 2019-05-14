@@ -3,24 +3,24 @@
 . daemonize
 
 usage() {
-    echo "Usage: $(basename $0) [OPTIONS] <FLV_LOCATION> <FLV_HOST> <FLV_PORT> <COMMAND>"
+    echo "Usage: $(basename $0) [OPTIONS] <LOCATION> <HOST> <PORT> <COMMAND>"
     echo ""
     exit 0
 }
 
 [ $# -ne 4 ] && usage
 
-flv_location=$1
-flv_host=$2
-flv_port=$3
+location=$1
+host=$2
+port=$3
 cmd=$4
 
-stream_root=$(make_hash $flv_location $flv_host $flv_port)
+stream_root=$(make_hash $location $host $port)
 stream_leaf=$stream_root
 
 case $cmd in
     start)
-        daemon_start $stream_root $stream_leaf "flv2rtp $flv_location $flv_host $flv_port"
+        daemon_start $stream_root $stream_leaf "flv2rtsp $location $host $port"
         ;;
     stop)
         daemon_stop $stream_root $stream_leaf

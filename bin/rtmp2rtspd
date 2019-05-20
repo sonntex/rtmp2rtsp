@@ -20,7 +20,7 @@ stream_leaf=$stream_root
 
 case $cmd in
     start)
-        daemon_start $stream_root $stream_leaf "flv2rtsp $location $host $port"
+        daemon_start $stream_root $stream_leaf "rtmp2rtsp $location $host $port"
         ;;
     stop)
         daemon_stop $stream_root $stream_leaf

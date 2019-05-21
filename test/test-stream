@@ -4,7 +4,7 @@
 
 gst-launch-1.0 -vef \
      flvmux name=mux \
-   ! rtmpsink location="rtmp://127.0.0.1:1935/vod/stream" \
+   ! rtmpsink location="rtmp://127.0.0.1:1935/rtmp2rtsp/stream" \
      videotestsrc \
    !     video/x-raw,width=320,height=240,framerate=30/1 \
    ! videoscale \

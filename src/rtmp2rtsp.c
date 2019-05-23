@@ -31,7 +31,7 @@ callback_options_request (GstRTSPClient * client, GstRTSPContext * ctx, GstRTSPS
 
     gst_rtsp_mount_points_add_factory (mounts, ctx->uri->abspath, factory);
 
-    g_print ("launch %s\n", launch);
+    g_print ("rtmp2rtsp: launch %s\n", launch);
 
     g_free (launch);
   }
@@ -70,7 +70,7 @@ main (int argc, char *argv[])
   gchar *port;
 
   if (argc != 3) {
-    g_print ("failed to parse arguments\n");
+    g_print ("rtmp2rtsp: failed to parse arguments\n");
     return -1;
   }
 
@@ -87,7 +87,7 @@ main (int argc, char *argv[])
   gst_rtsp_server_set_service (server, port);
 
   if (gst_rtsp_server_attach (server, NULL) == 0) {
-    g_print ("failed to attach\n");
+    g_print ("rtmp2rtsp: failed to attach\n");
     return -1;
   }
 
@@ -95,7 +95,7 @@ main (int argc, char *argv[])
 
   g_timeout_add_seconds (timeout, (GSourceFunc) callback_timeout, server);
 
-  g_print ("run at %s:%s\n", host, port);
+  g_print ("rtmp2rtsp: run at %s:%s\n", host, port);
 
   g_main_loop_run (loop);
 

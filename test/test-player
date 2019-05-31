@@ -3,7 +3,7 @@
 # export GST_DEBUG=4
 
 gst-launch-1.0 -vef \
-    rtspsrc location="rtsp://127.0.0.1:8554/stream" name=src \
+    rtspsrc location="rtsp://127.0.0.1:8554/rtmp2rtsp/stream" name=src \
     src. \
   ! queue \
   ! rtph264depay \

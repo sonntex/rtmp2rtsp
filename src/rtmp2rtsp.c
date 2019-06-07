@@ -14,6 +14,8 @@ gchar *rtsp_port;
 
 const guint timeout = 10;
 
+GstRTSPServer *server;
+
 static void
 callback_new_stream (GstRTSPMedia *media, GstRTSPStream *stream, gchar *path)
 {
@@ -36,12 +38,27 @@ static void
 callback_unprepared (GstRTSPMedia *media, gchar *path)
 {
   g_print ("rtmp2rtsp: %s: unprepared\n", path);
+
+  gst_rtsp_mount_points_remove_factory (
+      gst_rtsp_server_get_mount_points (server), path);
 }
 
 static void
 callback_target_state (GstRTSPMedia *media, GstState state, gchar *path)
 {
   g_print ("rtmp2rtsp: %s: target state %d\n", path, state);
+
+  if (state == GST_STATE_NULL) {
+    switch (gst_rtsp_media_get_status (media)) {
+      case GST_RTSP_MEDIA_STATUS_UNPREPARED:
+      case GST_RTSP_MEDIA_STATUS_ERROR:
+        gst_rtsp_mount_points_remove_factory (
+            gst_rtsp_server_get_mount_points (server), path);
+        break;
+      default:
+        break;
+    }
+  }
 }
 
 static void
@@ -54,6 +71,8 @@ static void
 callback_media_configure (GstRTSPMediaFactory *factory, GstRTSPMedia *media, gchar *path)
 {
   g_print ("rtmp2rtsp: %s: media configure\n", path);
+
+  gst_rtsp_media_set_reusable (media, TRUE);
 
   g_signal_connect_data (media, "new-stream",
       (GCallback) callback_new_stream,
@@ -108,6 +127,7 @@ callback_options_request (GstRTSPClient *client, GstRTSPContext *ctx, GstRTSPSer
 
     gst_rtsp_media_factory_set_launch (factory, launch);
     gst_rtsp_media_factory_set_shared (factory, TRUE);
+    gst_rtsp_media_factory_set_eos_shutdown (factory, TRUE);
 
     g_signal_connect_data (factory, "media-configure",
         (GCallback) callback_media_configure,
@@ -129,12 +149,75 @@ callback_options_request (GstRTSPClient *client, GstRTSPContext *ctx, GstRTSPSer
 }
 
 static void
+callback_describe_request (GstRTSPClient *client, GstRTSPContext *ctx, GstRTSPServer *server)
+{
+  g_print ("rtmp2rtsp: %s: describe request\n", ctx->uri->abspath);
+}
+
+static void
+callback_setup_request (GstRTSPClient *client, GstRTSPContext *ctx, GstRTSPServer *server)
+{
+  g_print ("rtmp2rtsp: %s: setup request\n", ctx->uri->abspath);
+}
+
+static void
+callback_play_request (GstRTSPClient *client, GstRTSPContext *ctx, GstRTSPServer *server)
+{
+  g_print ("rtmp2rtsp: %s: play request\n", ctx->uri->abspath);
+}
+
+static void
+callback_pause_request (GstRTSPClient *client, GstRTSPContext *ctx, GstRTSPServer *server)
+{
+  g_print ("rtmp2rtsp: %s: pause request\n", ctx->uri->abspath);
+}
+
+static void
+callback_teardown_request (GstRTSPClient *client, GstRTSPContext *ctx, GstRTSPServer *server)
+{
+  g_print ("rtmp2rtsp: %s: teardown request\n", ctx->uri->abspath);
+}
+
+static void
+callback_get_parameter_request (GstRTSPClient *client, GstRTSPContext *ctx, GstRTSPServer *server)
+{
+  g_print ("rtmp2rtsp: %s: get parameter request\n", ctx->uri->abspath);
+}
+
+static void
+callback_set_parameter_request (GstRTSPClient *client, GstRTSPContext *ctx, GstRTSPServer *server)
+{
+  g_print ("rtmp2rtsp: %s: set parameter request\n", ctx->uri->abspath);
+}
+
+static void
 callback_client_connected (GstRTSPServer *server, GstRTSPClient *client)
 {
   g_print ("rtmp2rtsp: client connected\n");
 
   g_signal_connect_object (client, "options-request",
       (GCallback) callback_options_request,
+      server, G_CONNECT_AFTER);
+  g_signal_connect_object (client, "describe-request",
+      (GCallback) callback_describe_request,
+      server, G_CONNECT_AFTER);
+  g_signal_connect_object (client, "setup-request",
+      (GCallback) callback_setup_request,
+      server, G_CONNECT_AFTER);
+  g_signal_connect_object (client, "play-request",
+      (GCallback) callback_play_request,
+      server, G_CONNECT_AFTER);
+  g_signal_connect_object (client, "pause-request",
+      (GCallback) callback_pause_request,
+      server, G_CONNECT_AFTER);
+  g_signal_connect_object (client, "teardown-request",
+      (GCallback) callback_teardown_request,
+      server, G_CONNECT_AFTER);
+  g_signal_connect_object (client, "get-parameter-request",
+      (GCallback) callback_get_parameter_request,
+      server, G_CONNECT_AFTER);
+  g_signal_connect_object (client, "set-parameter-request",
+      (GCallback) callback_set_parameter_request,
       server, G_CONNECT_AFTER);
 }
 
@@ -182,7 +265,6 @@ int
 main (int argc, char *argv[])
 {
   GMainLoop *loop;
-  GstRTSPServer *server;
 
   rtmp_host = getenv("RTMP_HOST");
   rtmp_port = getenv("RTMP_PORT");
@@ -214,7 +296,9 @@ main (int argc, char *argv[])
     return -1;
   }
 
-  g_signal_connect (server, "client-connected", (GCallback) callback_client_connected, NULL);
+  g_signal_connect_object (server, "client-connected",
+      (GCallback) callback_client_connected,
+      NULL, G_CONNECT_AFTER);
 
   g_timeout_add_seconds (timeout, (GSourceFunc) callback_timeout, server);
 

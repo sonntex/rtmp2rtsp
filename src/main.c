@@ -8,6 +8,28 @@
 #include "rtsp.h"
 #include "http.h"
 
+static gchar *rtmp_host = "127.0.0.1";
+static gchar *rtmp_port = "1935";
+static gint rtmp_timeout = 10;
+static gchar *rtsp_host = "127.0.0.1";
+static gchar *rtsp_port = "8554";
+static gint rtsp_timeout = 10;
+static gchar *http_host = "127.0.0.1";
+static gchar *http_port = "8080";
+
+static GOptionEntry options[] =
+{
+  { "rtmp-host", 0, 0, G_OPTION_ARG_STRING, &rtmp_host, "rtmp host", NULL },
+  { "rtmp-port", 0, 0, G_OPTION_ARG_STRING, &rtmp_port, "rtmp port", NULL },
+  { "rtmp-timeout", 0, 0, G_OPTION_ARG_INT, &rtmp_timeout, "rtmp timeout", NULL },
+  { "rtsp-host", 0, 0, G_OPTION_ARG_STRING, &rtsp_host, "rtsp host", NULL },
+  { "rtsp-port", 0, 0, G_OPTION_ARG_STRING, &rtsp_port, "rtsp port", NULL },
+  { "rtsp-timeout", 0, 0, G_OPTION_ARG_INT, &rtsp_timeout, "rtsp timeout", NULL },
+  { "http-host", 0, 0, G_OPTION_ARG_STRING, &http_host, "http host", NULL },
+  { "http-port", 0, 0, G_OPTION_ARG_STRING, &http_port, "http port", NULL },
+  { NULL }
+};
+
 static void
 callback_signal (int signal_number)
 {
@@ -39,36 +61,25 @@ setup_core ()
 int
 main (int argc, char *argv[])
 {
-  GMainLoop *loop;
   GstRTSPMediaTable *media_table;
-  gchar *rtmp_host;
-  gchar *rtmp_port;
-  gchar *rtsp_host;
-  gchar *rtsp_port;
-  gchar *http_host;
-  gchar *http_port;
+  GMainLoop *loop;
+  GOptionContext *context;
+  GError *error = NULL;
 
-  rtmp_host = getenv ("RTMP_HOST");
-  rtmp_port = getenv ("RTMP_PORT");
-  rtsp_host = getenv ("RTSP_HOST");
-  rtsp_port = getenv ("RTSP_PORT");
-  http_host = getenv ("HTTP_HOST");
-  http_port = getenv ("HTTP_PORT");
+  context = g_option_context_new ("");
 
-  if (!rtmp_host ||
-      !rtmp_port ||
-      !rtsp_host ||
-      !rtsp_port ||
-      !http_host ||
-      !http_port) {
+  g_option_context_add_main_entries (context, options, "");
+
+  if (!g_option_context_parse (context, &argc, &argv, &error))
+  {
     g_print ("rtmp2rtsp: failed to parse arguments\n");
-    return -1;
+    return 1;
   }
 
   setup_backtrace ();
   setup_core ();
 
-  gst_init (&argc, &argv);
+  gst_init (NULL, NULL);
 
   loop = g_main_loop_new (NULL, FALSE);
 
@@ -80,6 +91,8 @@ main (int argc, char *argv[])
   g_main_loop_run (loop);
 
   gst_rtsp_media_table_free (media_table);
+
+  gst_deinit ();
 
   return 0;
 }

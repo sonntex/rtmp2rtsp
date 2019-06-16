@@ -30,8 +30,10 @@ static GOptionEntry options[] =
   { NULL }
 };
 
+static GMainLoop *loop;
+
 static void
-callback_signal (int signal_number)
+callback_backtrace (int signal_number)
 {
   void *array[1024];
   int size;
@@ -42,10 +44,18 @@ callback_signal (int signal_number)
 }
 
 static void
-setup_backtrace ()
+callback_terminate (int signal_number)
 {
-  signal (SIGSEGV, callback_signal);
-  signal (SIGABRT, callback_signal);
+  g_main_loop_quit (loop);
+}
+
+static void
+setup_signals ()
+{
+  signal (SIGSEGV, callback_backtrace);
+  signal (SIGABRT, callback_backtrace);
+  signal (SIGTERM, callback_terminate);
+  signal (SIGINT, callback_terminate);
 }
 
 static void
@@ -62,7 +72,6 @@ int
 main (int argc, char *argv[])
 {
   GstRTSPMediaTable *media_table;
-  GMainLoop *loop;
   GOptionContext *context;
   GError *error = NULL;
 
@@ -76,7 +85,7 @@ main (int argc, char *argv[])
     return 1;
   }
 
-  setup_backtrace ();
+  setup_signals ();
   setup_core ();
 
   gst_init (NULL, NULL);
@@ -88,7 +97,11 @@ main (int argc, char *argv[])
   rtsp_init (media_table, rtmp_host, rtmp_port, 10, rtsp_host, rtsp_port, 10);
   http_init (media_table, http_host, http_port);
 
+  g_print ("rtmp2rtsp: start\n");
+
   g_main_loop_run (loop);
+
+  g_print ("rtmp2rtsp: stop\n");
 
   gst_rtsp_media_table_free (media_table);
 

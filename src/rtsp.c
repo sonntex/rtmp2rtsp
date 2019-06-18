@@ -16,7 +16,7 @@ struct _GstRTSPOpaque
 };
 
 static GstRTSPOpaque *
-gst_rtsp_opaque_new (GstRTSPMediaTable *media_table,
+rtsp_opaque_new (GstRTSPMediaTable *media_table,
     const gchar *rtmp_host, const gchar *rtmp_port, guint rtmp_timeout,
     const gchar *rtsp_host, const gchar *rtsp_port, guint rtsp_timeout)
 {
@@ -35,7 +35,7 @@ gst_rtsp_opaque_new (GstRTSPMediaTable *media_table,
 }
 
 static void
-gst_rtsp_opaque_free (GstRTSPOpaque *opaque)
+rtsp_opaque_free (GstRTSPOpaque *opaque)
 {
   g_free (opaque->rtmp_host);
   g_free (opaque->rtmp_port);
@@ -45,7 +45,7 @@ gst_rtsp_opaque_free (GstRTSPOpaque *opaque)
 }
 
 GstRTSPMediaTable *
-gst_rtsp_media_table_new ()
+rtsp_media_table_new ()
 {
   GstRTSPMediaTable *media_table =
       g_hash_table_new_full (g_str_hash, g_str_equal, (GDestroyNotify) g_free, NULL);
@@ -54,115 +54,9 @@ gst_rtsp_media_table_new ()
 }
 
 void
-gst_rtsp_media_table_free (GstRTSPMediaTable *media_table)
+rtsp_media_table_free (GstRTSPMediaTable *media_table)
 {
   g_hash_table_destroy (media_table);
-}
-
-static void
-gst_rtsp_url_decode_application_and_uuid (const GstRTSPUrl *uri, gchar **application, gchar **uuid)
-{
-  gchar **com, **ptr;
-
-  com = gst_rtsp_url_decode_path_components (uri);
-  ptr = com;
-
-  if (*(ptr + 0) &&
-      *(ptr + 1) &&
-      *(ptr + 2))
-  {
-     *application = g_strdup (*(ptr + 1));
-     *uuid = g_strdup (*(ptr + 2));
-  }
-
-  g_strfreev (com);
-}
-
-void
-json_builder_data (JsonBuilder *builder, GstRTSPMedia *media)
-{
-  json_builder_begin_object (builder);
-  json_builder_set_member_name (builder, "data");
-  json_builder_begin_object (builder);
-  json_builder_data_value (builder, media);
-  json_builder_end_object (builder);
-  json_builder_end_object (builder);
-}
-
-void
-json_builder_data_value (JsonBuilder *builder, GstRTSPMedia *media)
-{
-  GstRTSPUrl *uri = g_object_get_data (G_OBJECT (media), "uri");
-  gchar *application = NULL;
-  gchar *uuid = NULL;
-
-  gst_rtsp_url_decode_application_and_uuid (uri, &application, &uuid);
-
-  if (!application || !uuid)
-    return;
-
-  json_builder_set_member_name (builder, "type");
-  json_builder_add_string_value (builder, "streams");
-
-  json_builder_set_member_name (builder, "id");
-  json_builder_add_string_value (builder, uuid);
-
-  json_builder_set_member_name (builder, "attributes");
-  json_builder_begin_object (builder);
-  json_builder_set_member_name (builder, "path");
-  json_builder_add_string_value (builder, uri->abspath);
-  json_builder_set_member_name (builder, "application");
-  json_builder_add_string_value (builder, application);
-  json_builder_set_member_name (builder, "uuid");
-  json_builder_add_string_value (builder, uuid);
-  json_builder_end_object (builder);
-
-  g_free (application);
-  g_free (uuid);
-}
-
-void
-json_builder_data_list (JsonBuilder *builder, GstRTSPMediaTable *media_table)
-{
-  json_builder_begin_object (builder);
-  json_builder_set_member_name (builder, "data");
-  json_builder_begin_array (builder);
-  json_builder_data_list_value (builder, media_table);
-  json_builder_end_array (builder);
-  json_builder_end_object (builder);
-}
-
-void
-json_builder_data_list_value (JsonBuilder *builder, GstRTSPMediaTable *media_table)
-{
-  GHashTableIter iter;
-  gpointer key, value;
-
-  g_hash_table_iter_init (&iter, media_table);
-
-  while (g_hash_table_iter_next (&iter, &key, &value))
-  {
-    json_builder_begin_object (builder);
-    json_builder_data_value (builder, value);
-    json_builder_end_object (builder);
-  }
-}
-
-gchar *
-json_builder_to_body (JsonBuilder *builder)
-{
-  JsonGenerator *generator;
-  JsonNode *root;
-  gchar *body;
-
-  generator = json_generator_new ();
-  root = json_builder_get_root (builder);
-  json_generator_set_root (generator, root);
-  body = json_generator_to_data (generator, NULL);
-  json_node_free (root);
-  g_object_unref (generator);
-
-  return body;
 }
 
 static void rtsp_client_connected (GstRTSPServer *server, GstRTSPClient *client);
@@ -185,6 +79,19 @@ static gboolean rtsp_session_pool_cleanup (GstRTSPServer *server);
 static void rtsp_media_insert (GstRTSPMediaTable *media_table, GstRTSPMedia *media);
 static void rtsp_media_remove (GstRTSPMediaTable *media_table, GstRTSPMedia *media);
 
+static gchar * rtsp_media_get_status (GstRTSPMedia *media);
+
+static GstStructure * rtsp_media_get_structure (GstRTSPMedia *media, const gchar *name);
+
+static gboolean
+rtsp_media_get_video_props (GstRTSPMedia *media,
+    gchar **codec, gint *width, gint *height, gint *framerate_num, gint *framerate_den);
+static gboolean
+rtsp_media_get_audio_props (GstRTSPMedia *media,
+    gchar **codec, gint *channels, gint *rate);
+
+static gchar * rtsp_url_get_id (const GstRTSPUrl *uri);
+
 void
 rtsp_init (GstRTSPMediaTable *media_table,
     const gchar *rtmp_host, const gchar *rtmp_port, guint rtmp_timeout,
@@ -193,13 +100,13 @@ rtsp_init (GstRTSPMediaTable *media_table,
   GstRTSPOpaque *opaque;
   GstRTSPServer *server;
 
-  opaque = gst_rtsp_opaque_new (media_table,
+  opaque = rtsp_opaque_new (media_table,
       rtmp_host, rtmp_port, rtmp_timeout,
       rtsp_host, rtsp_port, rtsp_timeout);
 
   server = gst_rtsp_server_new ();
 
-  g_object_set_data_full (G_OBJECT (server), "opaque", opaque, (GDestroyNotify) gst_rtsp_opaque_free);
+  g_object_set_data_full (G_OBJECT (server), "opaque", opaque, (GDestroyNotify) rtsp_opaque_free);
 
   gst_rtsp_server_set_address (server, rtsp_host);
   gst_rtsp_server_set_service (server, rtsp_port);
@@ -257,11 +164,11 @@ rtsp_options_request (GstRTSPClient *client, GstRTSPContext *ctx, GstRTSPServer 
         "! flvdemux name=demux "
         "demux.video "
         "! queue "
-        "! h264parse "
+        "! h264parse name=parse0 "
         "! rtph264pay name=pay0 pt=96 "
         "demux.audio "
         "! queue "
-        "! aacparse "
+        "! aacparse name=parse1 "
         "! rtpmp4apay name=pay1 pt=97 "
         ")",
         opaque->rtmp_host, opaque->rtmp_port, uri->abspath, opaque->rtmp_timeout);
@@ -412,4 +319,255 @@ rtsp_media_remove (GstRTSPMediaTable *media_table, GstRTSPMedia *media)
   GstRTSPUrl *uri = g_object_get_data (G_OBJECT (media), "uri");
 
   g_hash_table_remove (media_table, uri->abspath);
+}
+
+static gchar *
+rtsp_media_get_status (GstRTSPMedia *media)
+{
+  switch (gst_rtsp_media_get_status (media))
+  {
+  case GST_RTSP_MEDIA_STATUS_UNPREPARED:
+    return "unprepared";
+  case GST_RTSP_MEDIA_STATUS_UNPREPARING:
+    return "unpreparing";
+  case GST_RTSP_MEDIA_STATUS_PREPARED:
+    return "prepared";
+  case GST_RTSP_MEDIA_STATUS_PREPARING:
+    return "preparing";
+  case GST_RTSP_MEDIA_STATUS_SUSPENDED:
+    return "suspended";
+  case GST_RTSP_MEDIA_STATUS_ERROR:
+    return "error";
+  default:
+    return "";
+  }
+}
+
+static GstStructure *
+rtsp_media_get_structure (GstRTSPMedia *media, const gchar *name)
+{
+  GstRTSPUrl *uri = g_object_get_data (G_OBJECT (media), "uri");
+  GstElement *bin, *element;
+  GstStructure *structure;
+  GList *item;
+
+  bin = gst_rtsp_media_get_element (media);
+  if (!bin)
+  {
+    g_print ("rtmp2rtsp: %s: failed to get bin\n", uri->abspath);
+    return NULL;
+  }
+
+  element = gst_bin_get_by_name (GST_BIN (bin), name);
+  if (!element)
+  {
+    g_print ("rtmp2rtsp: %s: failed to get element %s\n", uri->abspath, name);
+    return NULL;
+  }
+
+  for (item = GST_ELEMENT_PADS (element); item; item = g_list_next (item))
+  {
+    if (GST_PAD_IS_SRC (GST_PAD (item->data)))
+    {
+      structure = gst_caps_get_structure (
+          gst_pad_get_current_caps (GST_PAD (item->data)), 0);
+
+      return structure;
+    }
+  }
+
+  return NULL;
+}
+
+static gboolean
+rtsp_media_get_video_props (GstRTSPMedia *media,
+    gchar **codec, gint *width, gint *height, gint *framerate_num, gint *framerate_den)
+{
+  GstStructure *structure;
+
+  structure = rtsp_media_get_structure (media, "parse0");
+
+  if (structure)
+  {
+    if (gst_structure_get_int (structure, "width", width) &&
+        gst_structure_get_int (structure, "height", height) &&
+        gst_structure_get_fraction (structure, "framerate", framerate_num, framerate_den))
+    {
+      if (g_str_equal (gst_structure_get_name (structure), "video/x-h264"))
+      {
+        *codec = "h264";
+        return TRUE;
+      }
+    }
+  }
+
+  return FALSE;
+}
+
+static gboolean
+rtsp_media_get_audio_props (GstRTSPMedia *media,
+    gchar **codec, gint *channels, gint *rate)
+{
+  GstStructure *structure;
+
+  structure = rtsp_media_get_structure (media, "parse1");
+
+  if (structure)
+  {
+    if (gst_structure_get_int (structure, "channels", channels) &&
+        gst_structure_get_int (structure, "rate", rate))
+    {
+      if (g_str_equal (gst_structure_get_name (structure), "audio/mpeg"))
+      {
+        *codec = "aac";
+        return TRUE;
+      }
+    }
+  }
+
+  return FALSE;
+}
+
+static gchar *
+rtsp_url_get_id (const GstRTSPUrl *uri)
+{
+  gchar **com, **ptr;
+  gchar *id;
+
+  com = gst_rtsp_url_decode_path_components (uri);
+  ptr = com;
+
+  if (*(ptr + 0) && *(ptr + 1) && *(ptr + 2))
+    id = g_strdup (*(ptr + 2));
+  else
+    id = g_strdup ("");
+
+  g_strfreev (com);
+
+  return id;
+}
+
+void
+json_builder_stream (JsonBuilder *builder, GstRTSPMedia *media)
+{
+  json_builder_begin_object (builder);
+  json_builder_set_member_name (builder, "data");
+  json_builder_begin_object (builder);
+  json_builder_stream_value (builder, media);
+  json_builder_end_object (builder);
+  json_builder_end_object (builder);
+}
+
+void
+json_builder_stream_value (JsonBuilder *builder, GstRTSPMedia *media)
+{
+  GstRTSPUrl *uri = g_object_get_data (G_OBJECT (media), "uri");
+  gchar *id, *video_codec, *audio_codec;
+  gint video_width, video_height, video_framerate_num, video_framerate_den;
+  gint audio_channels, audio_rate;
+
+  id = rtsp_url_get_id (uri);
+
+  json_builder_set_member_name (builder, "type");
+  json_builder_add_string_value (builder, "streams");
+  json_builder_set_member_name (builder, "id");
+  json_builder_add_string_value (builder, id);
+
+  json_builder_set_member_name (builder, "attributes");
+  json_builder_begin_object (builder);
+
+  json_builder_set_member_name (builder, "path");
+  json_builder_add_string_value (builder, uri->abspath);
+  json_builder_set_member_name (builder, "status");
+  json_builder_add_string_value (builder, rtsp_media_get_status (media));
+
+  if (rtsp_media_get_video_props (media,
+          &video_codec,
+          &video_width,
+          &video_height,
+          &video_framerate_num,
+          &video_framerate_den))
+  {
+    json_builder_set_member_name (builder, "video");
+    json_builder_begin_object (builder);
+
+    json_builder_set_member_name (builder, "codec");
+    json_builder_add_string_value (builder, video_codec);
+    json_builder_set_member_name (builder, "width");
+    json_builder_add_int_value (builder, video_width);
+    json_builder_set_member_name (builder, "height");
+    json_builder_add_int_value (builder, video_height);
+    json_builder_set_member_name (builder, "framerate_num");
+    json_builder_add_int_value (builder, video_framerate_num);
+    json_builder_set_member_name (builder, "framerate_den");
+    json_builder_add_int_value (builder, video_framerate_den);
+
+    json_builder_end_object (builder);
+  }
+
+  if (rtsp_media_get_audio_props (media,
+          &audio_codec,
+          &audio_channels,
+          &audio_rate))
+  {
+    json_builder_set_member_name (builder, "audio");
+    json_builder_begin_object (builder);
+
+    json_builder_set_member_name (builder, "codec");
+    json_builder_add_string_value (builder, audio_codec);
+    json_builder_set_member_name (builder, "channels");
+    json_builder_add_int_value (builder, audio_channels);
+    json_builder_set_member_name (builder, "rate");
+    json_builder_add_int_value (builder, audio_rate);
+
+    json_builder_end_object (builder);
+  }
+
+  json_builder_end_object (builder);
+
+  g_free (id);
+}
+
+void
+json_builder_stream_list (JsonBuilder *builder, GstRTSPMediaTable *media_table)
+{
+  json_builder_begin_object (builder);
+  json_builder_set_member_name (builder, "data");
+  json_builder_begin_array (builder);
+  json_builder_stream_list_value (builder, media_table);
+  json_builder_end_array (builder);
+  json_builder_end_object (builder);
+}
+
+void
+json_builder_stream_list_value (JsonBuilder *builder, GstRTSPMediaTable *media_table)
+{
+  GHashTableIter iter;
+  gpointer key, value;
+
+  g_hash_table_iter_init (&iter, media_table);
+
+  while (g_hash_table_iter_next (&iter, &key, &value))
+  {
+    json_builder_begin_object (builder);
+    json_builder_stream_value (builder, value);
+    json_builder_end_object (builder);
+  }
+}
+
+gchar *
+json_builder_to_body (JsonBuilder *builder)
+{
+  JsonGenerator *generator;
+  JsonNode *root;
+  gchar *body;
+
+  generator = json_generator_new ();
+  root = json_builder_get_root (builder);
+  json_generator_set_root (generator, root);
+  body = json_generator_to_data (generator, NULL);
+  json_node_free (root);
+  g_object_unref (generator);
+
+  return body;
 }

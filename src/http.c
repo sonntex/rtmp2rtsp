@@ -100,7 +100,7 @@ http_handle_streams_get (
   gchar *body;
 
   builder = json_builder_new ();
-  json_builder_data_list (builder, opaque->media_table);
+  json_builder_stream_list (builder, opaque->media_table);
   body = json_builder_to_body (builder);
   g_object_unref (builder);
 

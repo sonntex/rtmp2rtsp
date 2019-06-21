@@ -105,7 +105,5 @@ main (int argc, char *argv[])
 
   rtsp_media_table_free (media_table);
 
-  gst_deinit ();
-
   return 0;
 }

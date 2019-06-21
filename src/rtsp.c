@@ -462,9 +462,8 @@ void
 json_builder_stream_value (JsonBuilder *builder, GstRTSPMedia *media)
 {
   GstRTSPUrl *uri = g_object_get_data (G_OBJECT (media), "uri");
-  gchar *id, *video_codec, *audio_codec;
-  gint video_width, video_height, video_framerate_num, video_framerate_den;
-  gint audio_channels, audio_rate;
+  gchar *id, *codec;
+  gint width, height, framerate_num, framerate_den, channels, rate;
 
   id = rtsp_url_get_id (uri);
 
@@ -473,7 +472,7 @@ json_builder_stream_value (JsonBuilder *builder, GstRTSPMedia *media)
   json_builder_set_member_name (builder, "id");
   json_builder_add_string_value (builder, id);
 
-  json_builder_set_member_name (builder, "attributes");
+  json_builder_set_member_name (builder, "meta");
   json_builder_begin_object (builder);
 
   json_builder_set_member_name (builder, "path");
@@ -482,43 +481,43 @@ json_builder_stream_value (JsonBuilder *builder, GstRTSPMedia *media)
   json_builder_add_string_value (builder, rtsp_media_get_status (media));
 
   if (rtsp_media_get_video_props (media,
-          &video_codec,
-          &video_width,
-          &video_height,
-          &video_framerate_num,
-          &video_framerate_den))
+          &codec,
+          &width,
+          &height,
+          &framerate_num,
+          &framerate_den))
   {
     json_builder_set_member_name (builder, "video");
     json_builder_begin_object (builder);
 
     json_builder_set_member_name (builder, "codec");
-    json_builder_add_string_value (builder, video_codec);
+    json_builder_add_string_value (builder, codec);
     json_builder_set_member_name (builder, "width");
-    json_builder_add_int_value (builder, video_width);
+    json_builder_add_int_value (builder, width);
     json_builder_set_member_name (builder, "height");
-    json_builder_add_int_value (builder, video_height);
+    json_builder_add_int_value (builder, height);
     json_builder_set_member_name (builder, "framerate_num");
-    json_builder_add_int_value (builder, video_framerate_num);
+    json_builder_add_int_value (builder, framerate_num);
     json_builder_set_member_name (builder, "framerate_den");
-    json_builder_add_int_value (builder, video_framerate_den);
+    json_builder_add_int_value (builder, framerate_den);
 
     json_builder_end_object (builder);
   }
 
   if (rtsp_media_get_audio_props (media,
-          &audio_codec,
-          &audio_channels,
-          &audio_rate))
+          &codec,
+          &channels,
+          &rate))
   {
     json_builder_set_member_name (builder, "audio");
     json_builder_begin_object (builder);
 
     json_builder_set_member_name (builder, "codec");
-    json_builder_add_string_value (builder, audio_codec);
+    json_builder_add_string_value (builder, codec);
     json_builder_set_member_name (builder, "channels");
-    json_builder_add_int_value (builder, audio_channels);
+    json_builder_add_int_value (builder, channels);
     json_builder_set_member_name (builder, "rate");
-    json_builder_add_int_value (builder, audio_rate);
+    json_builder_add_int_value (builder, rate);
 
     json_builder_end_object (builder);
   }

@@ -1,7 +1,5 @@
 #include "rtsp.h"
 
-#include <gst/rtsp-server/rtsp-server.h>
-
 typedef struct _GstRTSPOpaque GstRTSPOpaque;
 
 struct _GstRTSPOpaque
@@ -91,6 +89,13 @@ rtsp_media_get_audio_props (GstRTSPMedia *media,
     gchar **codec, gint *channels, gint *rate);
 
 static gchar * rtsp_url_get_id (const GstRTSPUrl *uri);
+
+static void rtsp_media_stat (GstRTSPMedia *media,
+    guint *num_streams, guint64 *num_streams_bytes,
+    guint *num_clients, guint64 *num_clients_bytes);
+static void rtsp_media_table_stat (GstRTSPMediaTable *media_table,
+    guint *num_streams, guint64 *num_streams_bytes,
+    guint *num_clients, guint64 *num_clients_bytes);
 
 void
 rtsp_init (GstRTSPMediaTable *media_table,
@@ -445,6 +450,72 @@ rtsp_url_get_id (const GstRTSPUrl *uri)
   g_strfreev (com);
 
   return id;
+}
+
+static void
+rtsp_media_stat (GstRTSPMedia *media,
+    guint *num_streams, guint64 *num_streams_bytes,
+    guint *num_clients, guint64 *num_clients_bytes)
+{
+  GstRTSPStream *stream;
+  gchar *str, **com, **ptr;
+
+  *num_streams += 1;
+
+  stream = gst_rtsp_media_get_stream (media, 0);
+
+  if (stream)
+  {
+    str = gst_rtsp_stream_get_clients (stream);
+    com = g_strsplit (str, ",", -1);
+
+    for (ptr = com; *ptr; ++ptr)
+    {
+      *num_clients += 1;
+    }
+
+    g_strfreev (com);
+    g_free (str);
+
+    if (num_streams_bytes)
+      *num_streams_bytes += gst_rtsp_stream_get_bytes_to_serve (stream);
+    if (num_clients_bytes)
+      *num_clients_bytes += gst_rtsp_stream_get_bytes_served (stream);
+  }
+}
+
+static void
+rtsp_media_table_stat (GstRTSPMediaTable *media_table,
+    guint *num_streams, guint64 *num_streams_bytes,
+    guint *num_clients, guint64 *num_clients_bytes)
+{
+  GHashTableIter iter;
+  gpointer key, value;
+
+  g_hash_table_iter_init (&iter, media_table);
+
+  if (g_hash_table_iter_next (&iter, &key, &value))
+  {
+    rtsp_media_stat (value, num_streams, num_streams_bytes, num_clients, num_clients_bytes);
+
+    while (g_hash_table_iter_next (&iter, &key, &value))
+    {
+      rtsp_media_stat (value, num_streams, NULL, num_clients, num_clients_bytes);
+    }
+  }
+}
+
+void
+rtsp_stat (GstRTSPMediaTable *media_table,
+    guint *num_streams, guint64 *num_streams_bytes,
+    guint *num_clients, guint64 *num_clients_bytes)
+{
+  *num_streams = 0;
+  *num_streams_bytes = 0;
+  *num_clients = 0;
+  *num_clients_bytes = 0;
+
+  rtsp_media_table_stat (media_table, num_streams, num_streams_bytes, num_clients, num_clients_bytes);
 }
 
 void

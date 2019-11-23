@@ -1,7 +1,5 @@
 set(PROJECT rtmp2rtsp)
 
-project(${PROJECT})
-
 find_package(PkgConfig)
 
 pkg_check_modules(GLIB glib-2.0)
@@ -18,11 +16,7 @@ include_directories(
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG")
 
-add_executable(${PROJECT}
-    rtsp.c
-    http.c
-    prometheus.c
-    main.c)
+add_executable(${PROJECT} rtsp.c http.c main.c)
 
 target_link_libraries(${PROJECT}
     glib-2.0

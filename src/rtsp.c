@@ -57,34 +57,6 @@ rtsp_media_table_free (GstRTSPMediaTable *media_table)
   g_hash_table_destroy (media_table);
 }
 
-typedef struct _GstRTSPStreamStats GstRTSPStreamStats;
-
-struct _GstRTSPStreamStats
-{
-  gint64 time;
-  guint64 bytes_to_serve;
-  guint64 bytes_served;
-};
-
-static GstRTSPStreamStats *
-rtsp_stream_stats_new (gint64 time, guint64 bytes_to_serve, guint64 bytes_served)
-{
-  GstRTSPStreamStats *stats;
-
-  stats = g_new0 (GstRTSPStreamStats, 1);
-  stats->time = time;
-  stats->bytes_to_serve = bytes_to_serve;
-  stats->bytes_served = bytes_served;
-
-  return stats;
-}
-
-static void
-rtsp_stream_stats_free (GstRTSPStreamStats *stats)
-{
-  g_free (stats);
-}
-
 static void rtsp_client_connected (GstRTSPServer *server, GstRTSPClient *client);
 
 static void rtsp_options_request (GstRTSPClient *client, GstRTSPContext *ctx, GstRTSPServer *server);
@@ -302,8 +274,6 @@ rtsp_media_target_state (GstRTSPMedia *media, GstState state, GstRTSPServer *ser
 {
   GstRTSPOpaque *opaque = g_object_get_data (G_OBJECT (server), "opaque");
   GstRTSPUrl *uri = g_object_get_data (G_OBJECT (media), "uri");
-  GstRTSPStream *stream;
-  GstRTSPStreamStats *new_stats;
 
   g_print ("rtmp2rtsp: %s: media target state %d\n", uri->abspath, state);
 
@@ -319,14 +289,7 @@ rtsp_media_target_state (GstRTSPMedia *media, GstState state, GstRTSPServer *ser
         gst_rtsp_server_get_mount_points (server), uri->abspath);
   }
 
-  stream = gst_rtsp_media_get_stream (media, 0);
-
-  if (stream)
-  {
-    new_stats = rtsp_stream_stats_new (g_get_monotonic_time (), 0, 0);
-
-    g_object_set_data_full (G_OBJECT (stream), "stats", new_stats, (GDestroyNotify) rtsp_stream_stats_free);
-  }
+  gst_rtsp_media_get_stream (media, 0);
 }
 
 static void
@@ -489,93 +452,6 @@ rtsp_url_get_id (const GstRTSPUrl *uri)
   g_strfreev (com);
 
   return id;
-}
-
-static void
-rtsp_media_stat (GstRTSPMedia *media,
-    guint *streams_num, guint *streams_bps,
-    guint *clients_num, guint *clients_bps)
-{
-  GstRTSPStream *stream;
-  GstRTSPStreamStats *old_stats, *new_stats;
-  gchar *str, **com, **ptr;
-
-  *streams_num += 1;
-
-  stream = gst_rtsp_media_get_stream (media, 0);
-
-  if (stream)
-  {
-    str = gst_rtsp_stream_get_clients (stream);
-    com = g_strsplit (str, ",", -1);
-
-    for (ptr = com; *ptr; ++ptr)
-    {
-      *clients_num += 1;
-    }
-
-    g_strfreev (com);
-    g_free (str);
-
-    new_stats = rtsp_stream_stats_new (g_get_monotonic_time (),
-        gst_rtsp_stream_get_bytes_to_serve (stream),
-        gst_rtsp_stream_get_bytes_served (stream));
-
-    old_stats = g_object_get_data (G_OBJECT (stream), "stats");
-
-    if (old_stats)
-    {
-      if (streams_bps &&
-          new_stats->bytes_to_serve > old_stats->bytes_to_serve)
-      {
-        *streams_bps += (guint)((double)(new_stats->bytes_to_serve - old_stats->bytes_to_serve) /
-            (new_stats->time - old_stats->time) * 1000000 * 8);
-      }
-
-      if (clients_bps &&
-          new_stats->bytes_served > old_stats->bytes_served)
-      {
-        *clients_bps += (guint)((double)(new_stats->bytes_served - old_stats->bytes_served) /
-            (new_stats->time - old_stats->time) * 1000000 * 8);
-      }
-    }
-
-    g_object_set_data_full (G_OBJECT (stream), "stats", new_stats, (GDestroyNotify) rtsp_stream_stats_free);
-  }
-}
-
-static void
-rtsp_media_table_stat (GstRTSPMediaTable *media_table,
-    guint *streams_num, guint *streams_bps,
-    guint *clients_num, guint *clients_bps)
-{
-  GHashTableIter iter;
-  gpointer key, value;
-
-  g_hash_table_iter_init (&iter, media_table);
-
-  if (g_hash_table_iter_next (&iter, &key, &value))
-  {
-    rtsp_media_stat (value, streams_num, streams_bps, clients_num, clients_bps);
-
-    while (g_hash_table_iter_next (&iter, &key, &value))
-    {
-      rtsp_media_stat (value, streams_num, NULL, clients_num, clients_bps);
-    }
-  }
-}
-
-void
-rtsp_stat (GstRTSPMediaTable *media_table,
-    guint *streams_num, guint *streams_bps,
-    guint *clients_num, guint *clients_bps)
-{
-  *streams_num = 0;
-  *streams_bps = 0;
-  *clients_num = 0;
-  *clients_bps = 0;
-
-  rtsp_media_table_stat (media_table, streams_num, streams_bps, clients_num, clients_bps);
 }
 
 void
